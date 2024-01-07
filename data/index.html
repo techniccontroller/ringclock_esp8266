@@ -1,0 +1,505 @@
+<!DOCTYPE HTML>
+<html lang="de">
+	<head>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+	
+	body{
+		background-color: #222222;
+		font-family: -apple-system, 
+			BlinkMacSystemFont, 
+			"Segoe UI", 
+			Roboto, 
+			Oxygen-Sans, 
+			Ubuntu, 
+			Cantarell, 
+			"Helvetica Neue", 
+			sans-serif;
+		color: white;
+		background: #8ED25B;
+		background: linear-gradient(90deg, #044ef4, #333ad4, #2c37ab, #0e0549);
+		background-size: 400% 400%;
+		-webkit-animation: gradientBG 14s ease infinite forwards;
+		animation: gradientBG 14s ease infinite forwards;
+		font-weight: lighter;
+	}
+	/** Animated background: Code By Webdevtrick ( https://webdevtrick.com ) **/
+	@-webkit-keyframes gradientBG {
+		0% {
+			background-position: 0% 50%;
+		}
+		50% {
+			background-position: 100% 50%;
+		}
+		100% {
+			background-position: 0% 50%;
+		}
+	}
+	
+	@keyframes gradientBG {
+		0% {
+			background-position: 0% 50%;
+		}
+		50% {
+			background-position: 100% 50%;
+		}
+		100% {
+			background-position: 0% 50%;
+		}
+	}
+	
+	h1 {
+	  font-weight: lighter;
+	  letter-spacing: .125rem;
+	  text-transform: uppercase;
+	  color: white;
+	  text-align: center;
+	  font-size: x-large;
+	}
+	
+	.buttonClass {
+	  font-size:15px;
+	  font-family:Arial;
+	  width:70px;
+	  height:70px;
+	  color:#fff;
+	  font-weight:200;
+	  border-radius: 20px;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  -moz-user-select: none;
+	  -webkit-user-select: none;
+	  -ms-user-select:none;
+	  user-select:none;
+	  -o-user-select:none;
+	}
+
+	.buttonClass:hover {
+	  opacity: 0.7;
+	}
+	
+	.grid-container {
+	  font-size:15px;
+	  font-family:Arial;
+	  display: grid;
+	  grid-column-gap: 5px;
+	  grid-row-gap: 5px;
+	  grid-template-columns: auto auto auto auto;
+	  padding: 10px;
+	}
+
+	.grid-item {
+	  text-align: center;
+	  display: inline-block;
+	  text-align: center;
+	}
+
+	.dot {
+		border-radius: 50%;
+		display: flex;
+		justify-content: center; /* align horizontal */
+		align-items: center; /* align vertical */
+	}
+
+	.active{
+		border: 2px solid lightgray;
+	}
+
+	.mode-item{
+		background: rgba(59, 57, 57, 0.308);
+	}
+
+	.mode-item:hover{
+		opacity: 0.7;
+	}
+
+	.verticalline{
+		border-bottom: 1px solid rgba(255, 255, 255, 0.356);
+    	text-align: center;
+    	color: white;
+	}
+
+	input[type="checkbox"]{
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
+		-webkit-tap-highlight-color: transparent;
+		cursor: pointer;
+	}
+
+
+	.toggle{
+		height: 32px;
+		width: 52px;
+		border-radius: 16px;
+		display: inline-block;
+		position: relative;
+		margin: 0;
+		border: 2px solid #474755ab;
+		background: linear-gradient(180deg, #2d2f39ab 0%, #1f2027ab 100%);
+		transition: all .2s ease;
+	}
+
+	.toggle:after{
+		content: '';
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		background: white;
+		box-shadow: 0 1px 2px rgba(44,44,44,.2);
+		transition: all .2s cubic-bezier(.5,.1,.75,1.35);
+	}
+
+	.toggle:checked{
+		border-color: lightgray;
+	}
+
+	.toggle:checked::after{
+		transform: translatex(20px);
+	}
+
+	label {
+		text-align: right;
+		clear: both;
+		float:left;
+		margin-right:15px;
+		vertical-align: middle;
+	}
+
+	.checkbox-container{
+		display:flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin: 10px;
+	}
+
+	.headline{
+		text-align: center;
+		font-weight: 200;
+		font-size: larger;
+		margin-bottom: 10px;
+		margin-top: 10px;
+	}
+
+	.control-container{
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+	}
+
+	.hidden{
+		display: none;
+	}
+
+	.wide-button-bottom{
+		width: 80%; 
+		height: 40px; 
+		margin: 10px; 
+		padding: 5px;
+		background-color: rgba(147, 147, 158, 0.4);
+	}
+
+	.arrow-button{
+		width: 70px; 
+		height: 70px;
+		background-color: rgba(147, 147, 158, 0.4);
+	}
+
+	.tetris-button-bottom{
+		width: 105px; 
+		height: 40px; 
+		margin: 5px;
+		background-color: rgba(147, 147, 158, 0.4);
+	}
+
+	img{
+		-moz-user-select: none;
+		-webkit-user-select: none;	
+		user-select: none;
+	}
+
+	.setting-button{
+		position: absolute;
+		padding: 10px;
+	}
+
+	.settings-container{
+		height: 0px;
+		transition: height 1s;
+		overflow: hidden;
+	}
+
+	.show{
+		height: 240px;
+		transition: height 1s;
+	}
+
+	.number-container{
+		display:flex;
+		flex-direction: row;
+		justify-content: left;
+		align-items: center;
+		margin: 10px;
+	}
+
+	.save-button{
+		height: 30px; 
+		margin: 5px; 
+		background-color: rgba(147, 147, 158, 0.4);
+	}
+  
+	</style>
+	<title>RINGCLOCK</title>
+	<link rel="icon" type="image/svg" href="./icons/ringclock.svg">
+	</head>
+
+	<body oncontextmenu="return false"> <!-- prevent opening of contextmenu --> 
+		<div class="setting-button" onclick="toggleSettings()"><img src = "./icons/settings.svg" style="height:20px"/></div>
+		
+		<h1 id="headline">RINGCLOCK</h1>
+		
+		<div id="settings-container" class="settings-container">
+			<div class="number-container">
+				<label for="brightnessIR">Brightness Inside:</label>
+				<input type="range" id="brightnessIR" name="volume" min="10" max="255">
+			</div>
+			<div class="number-container">
+				<label for="brightnessOR">Brightness Outside:</label>
+				<input type="range" id="brightnessOR" name="volume" min="10" max="255">
+			</div>
+			<div class="number-container">
+				<label for="nm_start" style="align-self: flex-start">Nightmode start time: </label> 
+				<input type="time" id="nm_start" name="nm_start" min="00:00" max="23:59">
+			</div>
+			<div class="number-container">
+				<label for="nm_end" style="align-self: flex-start">Nightmode end time: </label>
+				<input type="time" id="nm_end" name="nm_end" min="00:00" max="23:59">
+			</div>
+			<div class="checkbox-container">
+				<label for="reset_wifi" style="align-self: flex-start">Reset WiFi Settings</label> 
+				<div>
+					<input name= "reset_wifi" id="reset_wifi" type="checkbox" class="toggle">
+				</div>
+			</div>
+			<div class="buttonClass save-button" onclick="saveSettings()">SAVE</div>
+		</div>
+
+		<div class="verticalline">
+		</div>
+		<div class="headline">
+			MODE
+		</div>
+		<div class="checkbox-container">
+			<label for="Nightmode" style="align-self: flex-start">Nightmode</label> 
+			<div>
+				<input name= "Nightmode" id="Nightmode" type="checkbox" class="toggle">
+			</div>
+		</div>
+		
+		<div class="main-container" id="colorcontainer">
+			<div class="verticalline">
+			</div>
+			<details>
+				<summary class="headline">
+					COLOR - HOURS
+				</summary>
+				<div class="control-container">
+					<div class="grid-container">
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours=128-0-0')" class="buttonClass dot" style="background:rgb(128,0,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==255-0-0')" class="buttonClass dot" style="background:rgb(255,0,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==0-0-128')" class="buttonClass dot" style="background:rgb(0,0,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==128-0-128')" class="buttonClass dot" style="background:rgb(128,0,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==255-0-128')" class="buttonClass dot" style="background:rgb(255,0,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==0-0-255')" class="buttonClass dot" style="background:rgb(0,0,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==128-0-255')" class="buttonClass dot" style="background:rgb(128,0,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==255-0-255')" class="buttonClass dot" style="background:rgb(255,0,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==0-128-0')" class="buttonClass dot" style="background:rgb(0,128,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==128-128-0')" class="buttonClass dot" style="background:rgb(128,128,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==255-128-0')" class="buttonClass dot" style="background:rgb(255,128,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==0-128-128')" class="buttonClass dot" style="background:rgb(0,128,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==128-128-128')" class="buttonClass dot" style="background:rgb(128,128,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==255-128-128')" class="buttonClass dot" style="background:rgb(255,128,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==0-128-255')" class="buttonClass dot" style="background:rgb(0,128,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==128-128-255')" class="buttonClass dot" style="background:rgb(128,128,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==255-128-255')" class="buttonClass dot" style="background:rgb(255,128,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==0-255-0')" class="buttonClass dot" style="background:rgb(0,255,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==128-255-0')" class="buttonClass dot" style="background:rgb(128,255,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==255-255-0')" class="buttonClass dot" style="background:rgb(255,255,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==0-255-128')" class="buttonClass dot" style="background:rgb(0,255,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==128-255-128')" class="buttonClass dot" style="background:rgb(128,255,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==255-255-128')" class="buttonClass dot" style="background:rgb(255,255,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_hours==255-255-255')" class="buttonClass dot" style="background:rgb(255,255,255);"></a></span></div>
+					</div>
+				</div>
+			</details>
+			
+		</div>
+
+		<div class="main-container" id="colorcontainer2">
+			<div class="verticalline">
+			</div>
+			<details>
+				<summary class="headline">
+					COLOR - MINUTES
+				</summary>
+				<div class="control-container">
+					<div class="grid-container">
+						<div class="grid-container">
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=128-0-0')" class="buttonClass dot" style="background:rgb(128,0,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=255-0-0')" class="buttonClass dot" style="background:rgb(255,0,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=0-0-128')" class="buttonClass dot" style="background:rgb(0,0,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=128-0-128')" class="buttonClass dot" style="background:rgb(128,0,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=255-0-128')" class="buttonClass dot" style="background:rgb(255,0,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=0-0-255')" class="buttonClass dot" style="background:rgb(0,0,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=128-0-255')" class="buttonClass dot" style="background:rgb(128,0,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=255-0-255')" class="buttonClass dot" style="background:rgb(255,0,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=0-128-0')" class="buttonClass dot" style="background:rgb(0,128,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=128-128-0')" class="buttonClass dot" style="background:rgb(128,128,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=255-128-0')" class="buttonClass dot" style="background:rgb(255,128,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=0-128-128')" class="buttonClass dot" style="background:rgb(0,128,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=128-128-128')" class="buttonClass dot" style="background:rgb(128,128,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=255-128-128')" class="buttonClass dot" style="background:rgb(255,128,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=0-128-255')" class="buttonClass dot" style="background:rgb(0,128,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=128-128-255')" class="buttonClass dot" style="background:rgb(128,128,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=255-128-255')" class="buttonClass dot" style="background:rgb(255,128,255);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=0-255-0')" class="buttonClass dot" style="background:rgb(0,255,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=128-255-0')" class="buttonClass dot" style="background:rgb(128,255,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=255-255-0')" class="buttonClass dot" style="background:rgb(255,255,0);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=0-255-128')" class="buttonClass dot" style="background:rgb(0,255,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=128-255-128')" class="buttonClass dot" style="background:rgb(128,255,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=255-255-128')" class="buttonClass dot" style="background:rgb(255,255,128);"></a></span></div>
+							<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_minutes=255-255-255')" class="buttonClass dot" style="background:rgb(255,255,255);"></a></span></div>
+						  </div>
+					</div>
+				</div>
+			</details>
+			
+		</div>
+
+		<div class="main-container" id="colorcontainer3">
+			<div class="verticalline">
+			</div>
+			<details>
+				<summary class="headline">
+					COLOR - SECONDS
+				</summary>
+				<div class="control-container">
+					<div class="grid-container">
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==128-0-0')" class="buttonClass dot" style="background:rgb(128,0,0);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==255-0-0')" class="buttonClass dot" style="background:rgb(255,0,0);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==0-0-128')" class="buttonClass dot" style="background:rgb(0,0,128);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==128-0-128')" class="buttonClass dot" style="background:rgb(128,0,128);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==255-0-128')" class="buttonClass dot" style="background:rgb(255,0,128);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==0-0-255')" class="buttonClass dot" style="background:rgb(0,0,255);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==128-0-255')" class="buttonClass dot" style="background:rgb(128,0,255);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==255-0-255')" class="buttonClass dot" style="background:rgb(255,0,255);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==0-128-0')" class="buttonClass dot" style="background:rgb(0,128,0);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==128-128-0')" class="buttonClass dot" style="background:rgb(128,128,0);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==255-128-0')" class="buttonClass dot" style="background:rgb(255,128,0);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==0-128-128')" class="buttonClass dot" style="background:rgb(0,128,128);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==128-128-128')" class="buttonClass dot" style="background:rgb(128,128,128);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==255-128-128')" class="buttonClass dot" style="background:rgb(255,128,128);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==0-128-255')" class="buttonClass dot" style="background:rgb(0,128,255);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==128-128-255')" class="buttonClass dot" style="background:rgb(128,128,255);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==255-128-255')" class="buttonClass dot" style="background:rgb(255,128,255);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==0-255-0')" class="buttonClass dot" style="background:rgb(0,255,0);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==128-255-0')" class="buttonClass dot" style="background:rgb(128,255,0);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==255-255-0')" class="buttonClass dot" style="background:rgb(255,255,0);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==0-255-128')" class="buttonClass dot" style="background:rgb(0,255,128);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==128-255-128')" class="buttonClass dot" style="background:rgb(128,255,128);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==255-255-128')" class="buttonClass dot" style="background:rgb(255,255,128);"></a></span></div>
+						<div class="grid-item"><span class="dot"><a onclick="sendCommand('./cmd?col_seconds==255-255-255')" class="buttonClass dot" style="background:rgb(255,255,255);"></a></span></div>
+					</div>
+				</div>
+			</details>
+		</div>
+		
+
+		<script>
+
+			var xmlhttp = new XMLHttpRequest();
+			var url = "./data?key=mode";
+			var myVar = null;
+
+			xmlhttp.onreadystatechange = function() {
+				if (this.readyState == 4 && this.status == 200) {
+					console.log(this.responseText);
+					myVar = JSON.parse(this.responseText);
+
+					// set checkbox states
+					var ckb_nightmode = document.querySelector('input[id="Nightmode"]');
+					if(myVar.nightMode == "1") {
+						console.log("nightMode == 1");
+						ckb_nightmode.checked = true;
+					}
+					else {
+						console.log("nightMode == 0");
+						ckb_nightmode.checked = false;
+					}
+					ckb_nightmode.addEventListener('change', () => {
+						if(ckb_nightmode.checked) {
+							sendCommand("./cmd?nightmode=1");
+						} else {
+							sendCommand("./cmd?nightmode=0");
+						}
+					});
+					
+					document.getElementById("nm_start").value = myVar.nightModeStart.replace("-", ":");
+					document.getElementById("nm_end").value = myVar.nightModeEnd.replace("-", ":");
+					document.getElementById("brightnessIR").value = parseInt(myVar.brightnessIR);
+					document.getElementById("brightnessOR").value = parseInt(myVar.brightnessOR);
+
+					console.log(myVar);
+				}
+			};
+			xmlhttp.open("GET", url, true);
+			xmlhttp.send();
+
+			function sendCommand(command){
+				var xmlhttp = new XMLHttpRequest();
+				xmlhttp.open("GET", command, true);
+				xmlhttp.send();
+			}
+
+			function saveSettings(){
+				var nmStart = document.getElementById("nm_start");
+				var nmEnd = document.getElementById("nm_end");
+				var sld_brightnessIR = document.getElementById("brightnessIR");
+				var sld_brightnessOR = document.getElementById("brightnessOR");
+				var ckb_resetWifi = document.querySelector('input[id="reset_wifi"]');
+				var cmdstr = "./cmd?setting=";
+				cmdstr += nmStart.value.replace(":", "-");
+				cmdstr += "-";
+				cmdstr += nmEnd.value.replace(":", "-");
+				cmdstr += "-";
+				cmdstr += sld_brightnessIR.value;
+				cmdstr += "-";
+				cmdstr += sld_brightnessOR.value;
+				console.log(cmdstr);
+				sendCommand(cmdstr);
+				if(ckb_resetWifi.checked) {
+					sendCommand("./cmd?resetwifi");
+				}
+				toggleSettings();
+			}
+
+			function toggleSettings(){
+				var container = document.getElementById("settings-container");
+				if(container.classList.contains("show")){
+					container.classList.remove("show");
+				}
+				else {
+					container.classList.add("show");
+				}
+			}
+			
+		</script>
+	</body>
+
+</html>

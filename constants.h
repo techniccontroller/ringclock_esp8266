@@ -1,0 +1,28 @@
+#define OUTER_RING_LED_COUNT 91
+#define INNER_RING_LED_COUNT 12
+#define OUTER_RING_LED_PIN 4
+#define INNER_RING_LED_PIN 5
+#define CURRENT_LIMIT_LED 1000
+
+#define PERIOD_HEARTBEAT 10000
+#define PERIOD_NTP_UPDATE 60000
+#define PERIOD_CLOCK_UPDATE 20
+#define PERIOD_LED_UPDATE 10
+#define PERIOD_NIGHTMODE_CHECK 20000
+
+#define EEPROM_SIZE 30      // size of EEPROM to save persistent variables
+#define ADR_NM_START_H 0
+#define ADR_NM_END_H 4
+#define ADR_NM_START_M 8
+#define ADR_NM_END_M 12
+#define ADR_BRIGHTNESS_OUTER 16
+#define ADR_BRIGHTNESS_INNER 17
+#define ADR_CS_RED 18
+#define ADR_CS_GREEN 19
+#define ADR_CS_BLUE 20
+#define ADR_CM_RED 21
+#define ADR_CM_GREEN 22
+#define ADR_CM_BLUE 23
+#define ADR_CH_RED 24
+#define ADR_CH_GREEN 25
+#define ADR_CH_BLUE 26
