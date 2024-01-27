@@ -266,34 +266,37 @@
 		
 		<div id="settings-container" class="settings-container">
 			<div class="number-container">
-				<label for="brightnessIR">Helligkeit innen:</label>
+				<label for="brightnessIR">Brightness Inside:</label>
 				<input type="range" id="brightnessIR" name="volume" min="10" max="255">
 			</div>
 			<div class="number-container">
-				<label for="brightnessOR">Helligkeit außen:</label>
+				<label for="brightnessOR">Brightness Outside:</label>
 				<input type="range" id="brightnessOR" name="volume" min="10" max="255">
 			</div>
 			<div class="number-container">
-				<label for="nm_start" style="align-self: flex-start">Nachtmodus Startzeit: </label> 
+				<label for="nm_start" style="align-self: flex-start">Nightmode start time: </label> 
 				<input type="time" id="nm_start" name="nm_start" min="00:00" max="23:59">
 			</div>
 			<div class="number-container">
-				<label for="nm_end" style="align-self: flex-start">Nachtmodus Endzeit: </label>
+				<label for="nm_end" style="align-self: flex-start">Nightmode end time: </label>
 				<input type="time" id="nm_end" name="nm_end" min="00:00" max="23:59">
 			</div>
 			<div class="checkbox-container">
-				<label for="reset_wifi" style="align-self: flex-start">WiFi Einstellungen zurücksetzen</label> 
+				<label for="reset_wifi" style="align-self: flex-start">Reset WiFi Settings</label> 
 				<div>
 					<input name= "reset_wifi" id="reset_wifi" type="checkbox" class="toggle">
 				</div>
 			</div>
-			<div class="buttonClass save-button" onclick="saveSettings()" style="width: 140px">SPEICHERN</div>
+			<div class="buttonClass save-button" onclick="saveSettings()">SAVE</div>
 		</div>
 
 		<div class="verticalline">
 		</div>
+		<div class="headline">
+			MODE
+		</div>
 		<div class="checkbox-container">
-			<label for="Nightmode" style="align-self: flex-start">Nachtmodus</label> 
+			<label for="Nightmode" style="align-self: flex-start">Nightmode</label> 
 			<div>
 				<input name= "Nightmode" id="Nightmode" type="checkbox" class="toggle">
 			</div>
@@ -304,7 +307,7 @@
 			</div>
 			<details>
 				<summary class="headline">
-					FARBE - STUNDEN
+					COLOR - HOURS
 				</summary>
 				<div class="control-container">
 					<div class="grid-container">
@@ -343,7 +346,7 @@
 			</div>
 			<details>
 				<summary class="headline">
-					FARBE - MINUTEN
+					COLOR - MINUTES
 				</summary>
 				<div class="control-container">
 					<div class="grid-container">
@@ -384,7 +387,7 @@
 			</div>
 			<details>
 				<summary class="headline">
-					FARBE - SEKUNDEN
+					COLOR - SECONDS
 				</summary>
 				<div class="control-container">
 					<div class="grid-container">
