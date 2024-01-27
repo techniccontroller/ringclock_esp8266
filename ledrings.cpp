@@ -249,7 +249,7 @@ void LEDRings::drawOnRings(float factor){
     if(totalCurrent > currentLimit){
         uint8_t newBrightnessOR = brightnessOuterRing * float(currentLimit)/float(totalCurrent);
         uint8_t newBrightnessIR = brightnessInnerRing * float(currentLimit)/float(totalCurrent);
-        logger->logString("CurrentLimit reached!!!: " + String(totalCurrent));
+        //logger->logString("CurrentLimit reached!!!: " + String(totalCurrent));
         outerRing->setBrightness(newBrightnessOR);
         innerRing->setBrightness(newBrightnessIR);
     }
