@@ -295,9 +295,14 @@ void loop() {
     
     if(hours == nightModeStartHour && minutes == nightModeStartMin){
       setNightmode(true);
+      logger.logString("Nightmode activated");
     }
     else if(hours == nightModeEndHour && minutes == nightModeEndMin){
       setNightmode(false);
+      logger.logString("Nightmode deactivated");
+    }
+    else{
+      logger.logString("Nightmode Check: " + String(hours) + ":" + String(minutes) + " - " + String(nightModeStartHour) + ":" + String(nightModeStartMin) + " - " + String(nightModeEndHour) + ":" + String(nightModeEndMin));
     }
     
     lastNightmodeCheck = millis();
