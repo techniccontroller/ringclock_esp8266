@@ -119,7 +119,7 @@ void setup() {
 
   ledrings.setupRings();
   ledrings.setCurrentLimit(CURRENT_LIMIT_LED);
-  ledrings.setOffsets(-5, 0);
+  ledrings.setOffsets(-2, 0);
 
   loadColorsFromEEPROM();
   loadNightmodeSettingsFromEEPROM();
