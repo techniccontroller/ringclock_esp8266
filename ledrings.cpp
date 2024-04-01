@@ -213,9 +213,6 @@ void LEDRings::drawOnRingsSmooth(float factor){
  * @param factor transition factor (1.0 = instant, 0.1 = smooth)
  */
 void LEDRings::drawOnRings(float factor){
-    // calculate current limit
-    uint16_t currentLimitOuterRing = currentLimit / OUTER_RING_LED_COUNT;
-    uint16_t currentLimitInnerRing = currentLimit / INNER_RING_LED_COUNT;
 
     // set pixels on outer ring and calculate current for outer ring
     uint16_t totalCurrentOuterRing = 0;
