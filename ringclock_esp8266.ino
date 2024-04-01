@@ -91,6 +91,7 @@ uint32_t colorMinutes = LEDRings::Color24bit(0, 200, 200);  // color of the minu
 uint32_t colorSeconds = LEDRings::Color24bit(200, 0, 200);  // color of the seconds
 
 bool nightMode = false;                       // stores state of nightmode
+bool ledOff = false;                          // stores state of LED off
 // nightmode settings
 uint8_t nightModeStartHour = 22;
 uint8_t nightModeStartMin = 0;
@@ -230,7 +231,7 @@ void loop() {
     lastheartbeat = millis();
   }
 
-  if(millis() - lastStep > PERIOD_CLOCK_UPDATE && !nightMode){
+  if((millis() - lastStep > PERIOD_CLOCK_UPDATE) && !nightMode && !ledOff){
     // update LEDs
     int hours = ntp.getHours24();
     int minutes = ntp.getMinutes();
@@ -238,8 +239,14 @@ void loop() {
     lastStep = millis();
   }
 
+  // Turn off LEDs if ledOff is true or nightmode is active
+  if(ledOff || nightMode){
+    ledrings.flushInnerRing();
+    ledrings.flushOuterRing();
+    ledrings.drawOnRingsInstant();
+  }
   // periodically write colors to leds
-  if(millis() - lastLedStep > PERIOD_LED_UPDATE){
+  else if(millis() - lastLedStep > PERIOD_LED_UPDATE){
     ledrings.drawOnRingsSmooth(1.0);
     lastLedStep = millis();
   }
@@ -292,59 +299,26 @@ void loop() {
   if(millis() - lastNightmodeCheck > PERIOD_NIGHTMODE_CHECK){
     int hours = ntp.getHours24();
     int minutes = ntp.getMinutes();
-    
-    if(hours == nightModeStartHour && minutes == nightModeStartMin){
-      setNightmode(true);
-      logger.logString("Nightmode activated");
-    }
-    else if(hours == nightModeEndHour && minutes == nightModeEndMin){
-      setNightmode(false);
-      logger.logString("Nightmode deactivated");
-    }
-    else{
-      logger.logString("Nightmode Check: " + String(hours) + ":" + String(minutes) + " - " + String(nightModeStartHour) + ":" + String(nightModeStartMin) + " - " + String(nightModeEndHour) + ":" + String(nightModeEndMin));
-    }
+
+    nightMode = false; // Initial assumption
+
+    // Convert all times to minutes for easier comparison
+    int currentTimeInMinutes = hours * 60 + minutes;
+    int startInMinutes = nightModeStartHour * 60 + nightModeStartMin;
+    int endInMinutes = nightModeEndHour * 60 + nightModeEndMin;
+
+    if (startInMinutes < endInMinutes) { // Same day scenario
+        if (startInMinutes < currentTimeInMinutes && currentTimeInMinutes < endInMinutes) {
+            nightMode = true;
+        }
+    } else if (startInMinutes > endInMinutes) { // Overnight scenario
+        if (currentTimeInMinutes > startInMinutes || currentTimeInMinutes < endInMinutes) {
+            nightMode = true;
+        }
+    } 
     
     lastNightmodeCheck = millis();
   }
-
-  
-  /*for(int i=0; i<outer_ring.numPixels(); i++) {
-    outer_ring.setPixelColor(i, outer_ring.Color(0, 0, 0));
-    outer_ring.setPixelColor((i+1)%outer_ring.numPixels(), outer_ring.Color(0, 0, 255));
-    outer_ring.show();
-    delay(DELAYVAL);
-  }*/
-
-  /*for(int i=0; i<inner_ring.numPixels(); i++) {
-    inner_ring.setPixelColor(i, inner_ring.Color(0, 0, 0));
-    inner_ring.setPixelColor((i+1)%inner_ring.numPixels(), inner_ring.Color(0, 255, 0));
-    inner_ring.show();
-    delay(500);
-  }*/
-
-  /*// smooth transition movement of a single pixel around the outer ring 
-  int maxsteps = 600;
-  for(int i = 0; i < maxsteps; i++) {
-    float progress = (float) i / maxsteps;
-    unsigned int active_pixel = (int) (progress * outer_ring.numPixels());
-    float pixel_progress = progress * outer_ring.numPixels() - active_pixel;
-    // output the progress, active pixel and pixel progress
-    Serial.print(progress);
-    Serial.print(" ");
-    Serial.print(active_pixel);
-    Serial.print(" ");
-    Serial.println(pixel_progress);
-    if(active_pixel == 0){
-      outer_ring.setPixelColor(outer_ring.numPixels() - 1, outer_ring.Color(0, 0, 0));
-    } else {
-      outer_ring.setPixelColor(active_pixel - 1, outer_ring.Color(0, 0, 0));
-    }
-    outer_ring.setPixelColor(active_pixel, outer_ring.Color(0, 0, 255 * (1 - pixel_progress)));
-    outer_ring.setPixelColor((active_pixel + 1) % outer_ring.numPixels(), outer_ring.Color(0, 0, 255 * pixel_progress));
-    outer_ring.show();
-    delay(DELAYVAL);
-  }*/
 
 }
 
@@ -417,13 +391,13 @@ void loadNightmodeSettingsFromEEPROM()
   nightModeStartMin = EEPROM.read(ADR_NM_START_M);
   nightModeEndHour = EEPROM.read(ADR_NM_END_H);
   nightModeEndMin = EEPROM.read(ADR_NM_END_M);
-  if (nightModeStartHour < 0 || nightModeStartHour > 23)
-    nightModeStartHour = 22;
-  if (nightModeStartMin < 0 || nightModeStartMin > 59)
+  if (nightModeStartHour > 23)
+    nightModeStartHour = 22; // set to 22 o'clock as default
+  if (nightModeStartMin > 59)
     nightModeStartMin = 0;
-  if (nightModeEndHour < 0 || nightModeEndHour > 23)
-    nightModeEndHour = 7;
-  if (nightModeEndMin < 0 || nightModeEndMin > 59)
+  if (nightModeEndHour > 23)
+    nightModeEndHour = 7; // set to 7 o'clock as default
+  if (nightModeEndMin > 59)
     nightModeEndMin = 0;
   logger.logString("Nightmode starts at: " + String(nightModeStartHour) + ":" + String(nightModeStartMin));
   logger.logString("Nightmode ends at: " + String(nightModeEndHour) + ":" + String(nightModeEndMin));
@@ -540,11 +514,11 @@ void handleCommand() {
     logger.logString("b: " + String(bluestr.toInt()));
     setColorSeconds(redstr.toInt(), greenstr.toInt(), bluestr.toInt());
   }
-  else if(server.argName(0) == "nightmode"){
+  else if(server.argName(0) == "ledoff"){
     String modestr = server.arg(0);
-    logger.logString("Nightmode change via Webserver to: " + modestr);
-    if(modestr == "1") setNightmode(true);
-    else setNightmode(false);
+    logger.logString("LED off change via Webserver to: " + modestr);
+    if(modestr == "1") ledOff = true;
+    else ledOff = false;
   }
   else if(server.argName(0) == "setting"){
     String timestr = server.arg(0) + "-";
@@ -555,10 +529,10 @@ void handleCommand() {
     nightModeEndMin = split(timestr, '-', 3).toInt();
     uint8_t brightnessIR = split(timestr, '-', 4).toInt();
     uint8_t brightnessOR = split(timestr, '-', 5).toInt();
-    if(nightModeStartHour < 0 || nightModeStartHour > 23) nightModeStartHour = 22;
-    if(nightModeStartMin < 0 || nightModeStartMin > 59) nightModeStartMin = 0;
-    if(nightModeEndHour < 0 || nightModeEndHour > 23) nightModeEndHour = 7;
-    if(nightModeEndMin < 0 || nightModeEndMin > 59) nightModeEndMin = 0;
+    if(nightModeStartHour > 23) nightModeStartHour = 22; // set default
+    if(nightModeStartMin > 59) nightModeStartMin = 0;
+    if(nightModeEndHour > 23) nightModeEndHour = 7; // set default
+    if(nightModeEndMin > 59) nightModeEndMin = 0;
     if(brightnessIR < 10) brightnessIR = 10;
     if(brightnessOR < 10) brightnessOR = 10;
     EEPROM.write(ADR_NM_START_H, nightModeStartHour);
@@ -572,6 +546,7 @@ void handleCommand() {
     logger.logString("BrightnessIR: " + String(brightnessIR) + ", BrightnessOR: " + String(brightnessOR));
     ledrings.setBrightnessInnerRing(brightnessIR);
     ledrings.setBrightnessOuterRing(brightnessOR);
+    lastNightmodeCheck = 0;
   }
   else if (server.argName(0) == "resetwifi"){
     logger.logString("Reset Wifi via Webserver...");
@@ -592,7 +567,6 @@ void handleCommand() {
  */
 String split(String s, char parser, int index) {
   String rs="";
-  int parserIndex = index;
   int parserCnt=0;
   int rFromIndex=0, rToIndex=-1;
   while (index >= parserCnt) {
@@ -623,6 +597,8 @@ void handleDataRequest() {
     String message = "{";
     String keystr = server.arg(0);
     if(keystr == "mode"){
+      message += "\"ledoff\":\"" + String(ledOff) + "\"";
+      message += ",";
       message += "\"nightMode\":\"" + String(nightMode) + "\"";
       message += ",";
       message += "\"nightModeStart\":\"" + leadingZero2Digit(nightModeStartHour) + "-" + leadingZero2Digit(nightModeStartMin) + "\"";
@@ -637,18 +613,6 @@ void handleDataRequest() {
     logger.logString(message);
     server.send(200, "application/json", message);
   }
-}
-
-/**
- * @brief Set the nightmode state
- * 
- * @param on true -> nightmode on
- */
-void setNightmode(bool on){
-  ledrings.flushInnerRing();
-  ledrings.flushOuterRing();
-  ledrings.drawOnRingsSmooth(0.2);
-  nightMode = on;
 }
 
 /**
