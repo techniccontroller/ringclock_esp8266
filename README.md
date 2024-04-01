@@ -21,7 +21,7 @@ More details on my website: https://techniccontroller.com/ringclock-with-neopixe
 |-|-|-|
 
 ## Screenshots of webserver UI
-![screenshots_UI](https://techniccontroller.com/wp-content/uploads/Bildschirmfoto_3-3-2024_213920_ringclock.local_-jpeg.webp)
+![screenshots_UI](https://techniccontroller.com/wp-content/uploads/weboberflache_RINGCLOCK_en.png)
 
 ## Quickstart
 
