@@ -17,19 +17,11 @@ More details on my website: https://techniccontroller.com/ringclock-with-neopixe
 
 ## Pictures of clock
 
-<style>
-td, th {
-   border: none!important;
-}
-</style>
-
-RingClock             |  RingClock          |  RingClock
-:-------------------------:|:-------------------------:|:-------------------------:
-![](https://techniccontroller.com/wp-content/uploads/ringclock_6-1024x1024.webp) |  ![](https://techniccontroller.com/wp-content/uploads/ringclock_5-1024x1024.webp) | ![](https://techniccontroller.com/wp-content/uploads/ringclock_1-1024x1024.webp)
-
+| ![](https://techniccontroller.com/wp-content/uploads/ringclock_6-1024x1024.webp) | ![](https://techniccontroller.com/wp-content/uploads/ringclock_5-1024x1024.webp) | ![](https://techniccontroller.com/wp-content/uploads/ringclock_1-1024x1024.webp) |
+|-|-|-|
 
 ## Screenshots of webserver UI
-![screenshots_UI](https://techniccontroller.com/wp-content/uploads/Bildschirmfoto_3-3-2024_213920_ringclock.local_-jpeg.webp)
+![screenshots_UI](https://techniccontroller.com/wp-content/uploads/weboberflache_RINGCLOCK_en.png)
 
 ## Quickstart
 
