@@ -75,8 +75,6 @@ void LEDRings::setupRings(){
     innerRing->begin();
     outerRing->setBrightness(brightnessOuterRing);
     innerRing->setBrightness(brightnessInnerRing);
-    outerRing->show();
-    innerRing->show();
 }
 
 /**
