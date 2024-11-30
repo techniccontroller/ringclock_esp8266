@@ -103,6 +103,8 @@ int watchdogCounter = 30;
 
 bool waitForTimeAfterReboot = false; // wait for time update after reboot
 
+bool allLEDsOn = false; // flag to indicate if all LEDs are on
+
 // ----------------------------------------------------------------------------------
 //                                       SETUP 
 // ----------------------------------------------------------------------------------
@@ -236,7 +238,7 @@ void loop() {
     lastheartbeat = millis();
   }
 
-  if((millis() - lastStep > PERIOD_CLOCK_UPDATE) && !nightMode && !ledOff){
+  if((millis() - lastStep > PERIOD_CLOCK_UPDATE) && !nightMode && !ledOff && !allLEDsOn){
     // update LEDs
     updateClock();
     lastStep = millis();
@@ -375,6 +377,19 @@ void runQuickLEDTest(){
   inner_ring.show();
   outer_ring.show();
   delay(200);
+}
+
+/**
+ * @brief Turn on all LEDs
+ */
+void turnOnAllLEDs(){
+  for(int i=0; i<inner_ring.numPixels(); i++) {
+    ledrings.setPixelInnerRing(i, inner_ring.Color(0, 200, 0));
+  }
+
+  for(int i=0; i<outer_ring.numPixels(); i++) {
+    ledrings.setPixelOuterRing(i, outer_ring.Color(0, 200, 0));
+  }
 }
 
 /**
@@ -582,6 +597,15 @@ void handleCommand() {
     server.send(204, "text/plain", "No Content"); // this page doesn't send back content --> 204
     delay(1000);
     ESP.restart();
+  }
+  else if (server.argName(0) == "allledson"){
+    String modestr = server.arg(0);
+    logger.logString("all LED on change via Webserver to: " + modestr);
+    if(modestr == "1") {
+      allLEDsOn = true;
+      turnOnAllLEDs();
+    }
+    else allLEDsOn = false;
   }
   
   server.send(204, "text/plain", "No Content"); // this page doesn't send back content --> 204
