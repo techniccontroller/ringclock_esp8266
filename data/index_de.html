@@ -236,7 +236,7 @@
 	}
 
 	.show{
-		height: 240px;
+		height: 280px;
 		transition: height 1s;
 	}
 
@@ -287,7 +287,13 @@
 					<input name= "reset_wifi" id="reset_wifi" type="checkbox" class="toggle">
 				</div>
 			</div>
-			<div class="buttonClass save-button" onclick="saveSettings()" style="width: 140px">SPEICHERN</div>
+			<div class="checkbox-container">
+				<label for="LED_On" style="align-self: flex-start">All LEDs ON</label> 
+				<div>
+					<input name= "LED_On" id="LED_On" type="checkbox" class="toggle">
+				</div>
+			</div>
+			<div class="buttonClass save-button" onclick="saveSettings()" style="width: 140px">SPEICHERN>SAVE</div>
 		</div>
 
 		<div class="verticalline">			
@@ -467,6 +473,24 @@
 							sendCommand("./cmd?ledoff=1");
 						} else {
 							sendCommand("./cmd?ledoff=0");
+						}
+					});
+
+					// set checkbox states
+					var ckb_allledson = document.querySelector('input[id="LED_On"]');
+					if(myVar.allledson == "1") {
+						console.log("allledson == 1");
+						ckb_allledson.checked = true;
+					}
+					else {
+						console.log("allledson == 0");
+						ckb_allledson.checked = false;
+					}
+					ckb_allledson.addEventListener('change', () => {
+						if(ckb_allledson.checked) {
+							sendCommand("./cmd?allledson=1");
+						} else {
+							sendCommand("./cmd?allledson=0");
 						}
 					});
 					
