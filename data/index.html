@@ -477,17 +477,17 @@
 					});
 
 					// set checkbox states
-					var ckb_ledoff = document.querySelector('input[id="LED_On"]');
-					if(myVar.ledoff == "1") {
+					var ckb_allledson = document.querySelector('input[id="LED_On"]');
+					if(myVar.allledson == "1") {
 						console.log("allledson == 1");
-						ckb_ledoff.checked = true;
+						ckb_allledson.checked = true;
 					}
 					else {
 						console.log("allledson == 0");
-						ckb_ledoff.checked = false;
+						ckb_allledson.checked = false;
 					}
-					ckb_ledoff.addEventListener('change', () => {
-						if(ckb_ledoff.checked) {
+					ckb_allledson.addEventListener('change', () => {
+						if(ckb_allledson.checked) {
 							sendCommand("./cmd?allledson=1");
 						} else {
 							sendCommand("./cmd?allledson=0");

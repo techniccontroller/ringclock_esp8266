@@ -652,6 +652,8 @@ void handleDataRequest() {
     if(keystr == "mode"){
       message += "\"ledoff\":\"" + String(ledOff) + "\"";
       message += ",";
+      message += "\"allledson\":\"" + String(allLEDsOn) + "\"";
+      message += ",";
       message += "\"nightMode\":\"" + String(nightMode) + "\"";
       message += ",";
       message += "\"nightModeStart\":\"" + leadingZero2Digit(nightModeStartHour) + "-" + leadingZero2Digit(nightModeStartMin) + "\"";
