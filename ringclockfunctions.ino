@@ -5,8 +5,19 @@
 */
 
 #include "constants.h"
+#include <math.h>
 #define MILLIS_PER_MINUTE 60000
 
+float applySecondsFadeCurve(float progress) {
+    if(progress <= 0.0) {
+        return 0.0;
+    }
+    if(progress >= 1.0) {
+        return 1.0;
+    }
+
+    return pow(progress, SECONDS_FADE_GAMMA);
+}
 
 /**
  * @brief Show the hour on the clock
@@ -45,6 +56,8 @@ void showMinutes(uint8_t minutes, uint32_t colorMinutes, uint32_t colorSeconds) 
     float progressSeconds = (float)timeSinceLastMinuteChange / (float)MILLIS_PER_MINUTE;
     int activePixelSeconds = (int)(progressSeconds * OUTER_RING_LED_COUNT);
     float pixelProgressSeconds = progressSeconds * OUTER_RING_LED_COUNT - activePixelSeconds;
+    float fadeInSeconds = applySecondsFadeCurve(pixelProgressSeconds);
+    float fadeOutSeconds = applySecondsFadeCurve(1 - pixelProgressSeconds);
 
     // calculate minutes progress
     float minutesContinuous = (float)minutes + progressSeconds;
@@ -58,11 +71,11 @@ void showMinutes(uint8_t minutes, uint32_t colorMinutes, uint32_t colorSeconds) 
     for(int i = 0; i < OUTER_RING_LED_COUNT; i++) {
 
         if(i == activePixelSeconds - 1){
-            uint32_t color = LEDRings::interpolateColor24bit(black, colorSeconds, (1 - pixelProgressSeconds));
+            uint32_t color = LEDRings::interpolateColor24bit(black, colorSeconds, fadeOutSeconds);
             ledrings.setPixelOuterRing(i, color);
         }
         else if(i == activePixelSeconds){
-            uint32_t color = LEDRings::interpolateColor24bit(black, colorSeconds, pixelProgressSeconds);
+            uint32_t color = LEDRings::interpolateColor24bit(black, colorSeconds, fadeInSeconds);
             ledrings.setPixelOuterRing(i, color);
         }
         else {

@@ -16,6 +16,7 @@ class LEDRings{
 
         void setupRings();
         void setOffsets(int offsetOuterRing, int offsetInnerRing);
+        void setDirections(bool outerRingReversed, bool innerRingReversed);
 
         void setBrightnessOuterRing(uint8_t brightness);
         void setBrightnessInnerRing(uint8_t brightness);
@@ -45,6 +46,8 @@ class LEDRings{
 
         int offsetOuterRing;
         int offsetInnerRing;
+        bool outerRingReversed;
+        bool innerRingReversed;
 
         uint32_t targetOuterring[OUTER_RING_LED_COUNT] = {0};
         uint32_t currentOuterRing[OUTER_RING_LED_COUNT] = {0};

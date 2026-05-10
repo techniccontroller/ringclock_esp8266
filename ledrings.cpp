@@ -7,6 +7,10 @@ LEDRings::LEDRings(Adafruit_NeoPixel *outerRing, Adafruit_NeoPixel *innerRing, U
     currentLimit = DEFAULT_CURRENT_LIMIT;
     brightnessOuterRing = 255;
     brightnessInnerRing = 255;
+    offsetOuterRing = 0;
+    offsetInnerRing = 0;
+    outerRingReversed = false;
+    innerRingReversed = false;
 }
 
 /**
@@ -86,6 +90,17 @@ void LEDRings::setupRings(){
 void LEDRings::setOffsets(int offsetOuterRing, int offsetInnerRing){
     this->offsetOuterRing = offsetOuterRing;
     this->offsetInnerRing = offsetInnerRing;
+}
+
+/**
+ * @brief Set if the logical pixel order should be reversed for each ring.
+ *
+ * @param outerRingReversed true if outer ring is mounted anti-clockwise
+ * @param innerRingReversed true if inner ring is mounted anti-clockwise
+ */
+void LEDRings::setDirections(bool outerRingReversed, bool innerRingReversed){
+    this->outerRingReversed = outerRingReversed;
+    this->innerRingReversed = innerRingReversed;
 }
 
 /**
@@ -218,7 +233,8 @@ void LEDRings::drawOnRings(float factor){
         uint32_t currentColor = currentOuterRing[i];
         uint32_t targetColor = targetOuterring[i];
         uint32_t newColor = interpolateColor24bit(currentColor, targetColor, factor);
-        int correctedPixel = (OUTER_RING_LED_COUNT + i + offsetOuterRing) % OUTER_RING_LED_COUNT;
+        int directedPixel = outerRingReversed ? (OUTER_RING_LED_COUNT - 1 - i) : i;
+        int correctedPixel = (OUTER_RING_LED_COUNT + directedPixel + offsetOuterRing) % OUTER_RING_LED_COUNT;
         outerRing->setPixelColor(correctedPixel, newColor);
         currentOuterRing[i] = newColor;
 
@@ -231,7 +247,8 @@ void LEDRings::drawOnRings(float factor){
         uint32_t currentColor = currentInnerRing[i];
         uint32_t targetColor = targetInnerRing[i];
         uint32_t newColor = interpolateColor24bit(currentColor, targetColor, factor);
-        int correctedPixel = (INNER_RING_LED_COUNT + i + offsetInnerRing) % INNER_RING_LED_COUNT;
+        int directedPixel = innerRingReversed ? (INNER_RING_LED_COUNT - 1 - i) : i;
+        int correctedPixel = (INNER_RING_LED_COUNT + directedPixel + offsetInnerRing) % INNER_RING_LED_COUNT;
         innerRing->setPixelColor(correctedPixel, newColor);
         currentInnerRing[i] = newColor;
 

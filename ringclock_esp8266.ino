@@ -5,8 +5,9 @@
  * 
  * components:
  * - ESP8266 (Wemos D1 mini)
- * - 91x NeoPixel WS2812B LED-strip 144/m
+ * - 60x NeoPixel WS2812B LED-strip
  * - 12x NeoPixel WS2812B LED-strip 30/m
+ * - ST7735 128x160 TFT
  * 
  * Board settings:
  * - Board: LOLIN(WEMOS) D1 mini (clone)
@@ -18,11 +19,17 @@
  * - Adafruit GFX
  * - ArduinoOTA
  * - ESP8266WiFi
+ * - ESP8266HTTPClient
  * - WiFiManager
 */
 #include <LittleFS.h>
 #include <Adafruit_NeoPixel.h>          // NeoPixel library used to run the NeoPixel LEDs: https://github.com/adafruit/Adafruit_NeoPixel
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7735.h>
+#include <SPI.h>
 #include <ESP8266WiFi.h>
+#include <WiFiClientSecureBearSSL.h>
+#include <ESP8266HTTPClient.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <ESP8266WebServer.h>
@@ -54,7 +61,7 @@ IPAddress Subnetmask_AccessPoint(255,255,255,0);
 const char* AP_SSID = "ringclockAP";
 
 // hostname
-const String hostname = "ringclock";
+const String hostname = "ringclockV2";
 
 // ----------------------------------------------------------------------------------
 //                                        GLOBAL VARIABLES
@@ -71,6 +78,7 @@ WiFiManager wifiManager;
 // example for more information on possible values.
 Adafruit_NeoPixel outer_ring(OUTER_RING_LED_COUNT, OUTER_RING_LED_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel inner_ring(INNER_RING_LED_COUNT, INNER_RING_LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
 // timestamp variables
 long lastheartbeat = millis();      // time of last heartbeat sending
@@ -78,6 +86,8 @@ long lastStep = millis();           // time of last clock update
 long lastLedStep = millis();  // time of last led update
 long lastNTPUpdate = millis() - (PERIOD_NTP_UPDATE-5000);  // time of last NTP update
 long lastNightmodeCheck = millis(); // time of last nightmode check
+long lastDisplayUpdate = millis() - PERIOD_DISPLAY_UPDATE;
+long lastWeatherUpdate = millis() - WEATHER_REFRESH_PERIOD;
 
 // Create necessary global objects
 UDPLogger logger;
@@ -103,6 +113,42 @@ int watchdogCounter = 30;
 
 bool waitForTimeAfterReboot = false; // wait for time update after reboot
 
+struct WeatherData {
+  float temperature = 0.0;
+  int weatherCode = -1;
+  bool valid = false;
+  String updatedAt = "--:--";
+};
+
+struct LocationData {
+  float latitude = WEATHER_FALLBACK_LATITUDE;
+  float longitude = WEATHER_FALLBACK_LONGITUDE;
+  String city = "";
+  String timezone = "";
+  int offsetMinutes = 0;
+  bool valid = false;
+};
+
+WeatherData weather;
+LocationData location;
+
+void setupDisplay();
+bool updateLocationFromAPI();
+void updateDisplay();
+void updateWeather();
+bool extractJsonFloat(const String &payload, const String &key, float &value);
+bool extractJsonInt(const String &payload, const String &key, int &value);
+String extractJsonString(const String &payload, const String &key);
+void drawCenteredText(const String &text, int16_t y, uint8_t size, uint16_t color);
+void drawCenteredTemperature(int16_t y, float temperature);
+void drawTemperature(int16_t x, int16_t y, float temperature);
+void drawWeatherIcon(int16_t x, int16_t y, int weatherCode);
+void drawSunIcon(int16_t x, int16_t y);
+void drawCloudIcon(int16_t x, int16_t y, bool partlySunny);
+void drawRainIcon(int16_t x, int16_t y);
+void drawSnowIcon(int16_t x, int16_t y);
+void drawStormIcon(int16_t x, int16_t y);
+
 // ----------------------------------------------------------------------------------
 //                                       SETUP 
 // ----------------------------------------------------------------------------------
@@ -118,11 +164,12 @@ void setup() {
   //Init EEPROM
   EEPROM.begin(EEPROM_SIZE);
 
-  
+  setupDisplay();
 
   ledrings.setupRings();
   ledrings.setCurrentLimit(CURRENT_LIMIT_LED);
-  ledrings.setOffsets(-5, 0);
+  ledrings.setOffsets(-2, 0);
+  ledrings.setDirections(true, false);
 
   /** Use WiFiMaanger for handling initial Wifi setup **/
 
@@ -217,6 +264,10 @@ void setup() {
   logger.logString("NTP running");
   logger.logString("Time: " +  ntp.getFormattedTime());
   logger.logString("TimeOffset (seconds): " + String(ntp.getTimeOffset()));
+
+  updateLocationFromAPI();
+  updateWeather();
+  updateDisplay();
 }
 
 // ----------------------------------------------------------------------------------
@@ -308,6 +359,14 @@ void loop() {
   if(millis() - lastNightmodeCheck > PERIOD_NIGHTMODE_CHECK){
     checkNightmode(); 
     lastNightmodeCheck = millis();
+  }
+
+  if(millis() - lastWeatherUpdate > WEATHER_REFRESH_PERIOD){
+    updateWeather();
+  }
+
+  if(millis() - lastDisplayUpdate > PERIOD_DISPLAY_UPDATE){
+    updateDisplay();
   }
 
 }
