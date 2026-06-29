@@ -26,6 +26,8 @@ bool updateLocationFromAPI(){
   logger.logString("[HTTP] Requesting location from IP-API");
 
   if(http.begin(client, "http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,offset,query")){
+    client.setTimeout(LOCATION_HTTP_TIMEOUT_MS);
+    http.setTimeout(LOCATION_HTTP_TIMEOUT_MS);
     int httpCode = http.GET();
 
     if(httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY){
@@ -77,7 +79,34 @@ bool updateLocationFromAPI(){
   return result;
 }
 
+void showIPAddressOnDisplay(const IPAddress &ip){
+  displayBlankedForNightMode = false;
+  tft.fillScreen(ST77XX_BLACK);
+  drawCenteredText("IP address", 30, 2, ST77XX_CYAN);
+  drawCenteredText(ip.toString(), 64, 1, ST77XX_WHITE);
+  drawCenteredText("LEDs show last byte", 90, 1, ST77XX_YELLOW);
+  lastDisplayUpdate = millis();
+}
+
+void scheduleNextWeatherAttempt(bool success){
+  if(success){
+    lastWeatherUpdate = millis();
+  }
+  else {
+    lastWeatherUpdate = millis() - WEATHER_REFRESH_PERIOD + WEATHER_RETRY_PERIOD;
+  }
+}
+
+void markWeatherAttemptFailed(const String &message){
+  logger.logString(message);
+  if(!weather.valid){
+    weather.updatedAt = "--:--";
+  }
+  scheduleNextWeatherAttempt(false);
+}
+
 void updateDisplay(){
+  displayBlankedForNightMode = false;
   tft.fillScreen(ST77XX_BLACK);
 
   int16_t x = DISPLAY_CONTENT_OFFSET_X;
@@ -110,11 +139,19 @@ void updateDisplay(){
   lastDisplayUpdate = millis();
 }
 
+void blankDisplayForNightMode(){
+  if(!displayBlankedForNightMode){
+    tft.fillScreen(ST77XX_BLACK);
+    displayBlankedForNightMode = true;
+  }
+
+  lastDisplayUpdate = millis();
+}
+
 void updateWeather(){
   if(WiFi.status() != WL_CONNECTED){
-    weather.valid = false;
-    weather.updatedAt = "--:--";
-    lastWeatherUpdate = millis();
+    WiFi.reconnect();
+    markWeatherAttemptFailed("Weather update skipped: WiFi disconnected");
     return;
   }
 
@@ -124,19 +161,20 @@ void updateWeather(){
 
   BearSSL::WiFiClientSecure client;
   client.setInsecure();
+  client.setTimeout(WEATHER_HTTP_TIMEOUT_MS);
   HTTPClient http;
   String url = "https://api.open-meteo.com/v1/forecast?latitude=" + String(location.latitude, 4) +
                "&longitude=" + String(location.longitude, 4) +
                "&current=temperature_2m,weather_code&timezone=auto";
 
   if(!http.begin(client, url)){
-    logger.logString("Weather update failed: HTTP begin failed");
-    weather.valid = false;
-    lastWeatherUpdate = millis();
+    markWeatherAttemptFailed("Weather update failed: HTTP begin failed");
     return;
   }
 
+  http.setTimeout(WEATHER_HTTP_TIMEOUT_MS);
   int httpCode = http.GET();
+  bool success = false;
   if(httpCode == HTTP_CODE_OK){
     String payload = http.getString();
     float temperature = 0.0;
@@ -157,21 +195,25 @@ void updateWeather(){
       weather.weatherCode = weatherCode;
       weather.valid = true;
       weather.updatedAt = ntp.getFormattedTime().substring(0, 5);
+      success = true;
       logger.logString("Weather update successful: " + String(weather.temperature, 1) + "C, code " + String(weather.weatherCode));
     }
     else {
-      weather.valid = false;
       logger.logString("Weather update failed: JSON values missing");
     }
   }
   else {
-    weather.valid = false;
     logger.logString("Weather update failed: HTTP " + String(httpCode));
   }
 
   http.end();
-  lastWeatherUpdate = millis();
-  updateDisplay();
+  scheduleNextWeatherAttempt(success);
+  if(nightMode){
+    blankDisplayForNightMode();
+  }
+  else {
+    updateDisplay();
+  }
 }
 
 bool extractJsonFloat(const String &payload, const String &key, float &value){

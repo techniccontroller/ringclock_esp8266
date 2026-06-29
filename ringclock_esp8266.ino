@@ -102,6 +102,7 @@ uint32_t colorSeconds = LEDRings::Color24bit(200, 0, 200);  // color of the seco
 
 bool nightMode = false;                       // stores state of nightmode
 bool ledOff = false;                          // stores state of LED off
+bool displayBlankedForNightMode = false;      // stores state of nightmode display blanking
 // nightmode settings
 uint8_t nightModeStartHour = 22;
 uint8_t nightModeStartMin = 0;
@@ -134,7 +135,9 @@ LocationData location;
 
 void setupDisplay();
 bool updateLocationFromAPI();
+void showIPAddressOnDisplay(const IPAddress &ip);
 void updateDisplay();
+void blankDisplayForNightMode();
 void updateWeather();
 bool extractJsonFloat(const String &payload, const String &key, float &value);
 bool extractJsonInt(const String &payload, const String &key, int &value);
@@ -184,12 +187,21 @@ void setup() {
 
   // set a custom hostname
   wifiManager.setHostname(hostname);
+  wifiManager.setConnectTimeout(WIFI_CONNECT_TIMEOUT_SECONDS);
+  wifiManager.setConfigPortalTimeout(WIFI_CONFIG_PORTAL_TIMEOUT_SECONDS);
 
   // fetches ssid and pass from eeprom and tries to connect
   // if it does not connect it starts an access point with the specified name
   // here "ringclockAP"
-  // and goes into a blocking loop awaiting configuration
-  wifiManager.autoConnect(AP_SSID);
+  // and waits for configuration until the configured portal timeout expires
+  if(!wifiManager.autoConnect(AP_SSID)){
+    Serial.println("WiFi connection/configuration timed out. Restarting...");
+    tft.fillScreen(ST77XX_BLACK);
+    drawCenteredText("WiFi retry", 44, 2, ST77XX_YELLOW);
+    drawCenteredText("restarting...", 70, 1, ST77XX_WHITE);
+    delay(3000);
+    ESP.restart();
+  }
 
   // if you get here you have connected to the WiFi
   Serial.println("Connected.");
@@ -222,6 +234,7 @@ void setup() {
     runQuickLEDTest();
 
     // display IP
+    showIPAddressOnDisplay(WiFi.localIP());
     uint8_t address = WiFi.localIP()[3];
     uint8_t first_digit = address/100;
     uint8_t second_digit = (address/10)%10;
@@ -264,10 +277,16 @@ void setup() {
   logger.logString("NTP running");
   logger.logString("Time: " +  ntp.getFormattedTime());
   logger.logString("TimeOffset (seconds): " + String(ntp.getTimeOffset()));
+  checkNightmode();
 
-  updateLocationFromAPI();
+  if(nightMode){
+    blankDisplayForNightMode();
+  }
+  else {
+    updateDisplay();
+  }
+
   updateWeather();
-  updateDisplay();
 }
 
 // ----------------------------------------------------------------------------------
@@ -366,7 +385,12 @@ void loop() {
   }
 
   if(millis() - lastDisplayUpdate > PERIOD_DISPLAY_UPDATE){
-    updateDisplay();
+    if(nightMode){
+      blankDisplayForNightMode();
+    }
+    else {
+      updateDisplay();
+    }
   }
 
 }
@@ -390,6 +414,7 @@ void updateClock(){
 void checkNightmode(){
   int hours = ntp.getHours24();
   int minutes = ntp.getMinutes();
+  bool wasNightMode = nightMode;
 
   nightMode = false; // Initial assumption
 
@@ -406,6 +431,13 @@ void checkNightmode(){
       if (currentTimeInMinutes >= startInMinutes || currentTimeInMinutes < endInMinutes) {
           nightMode = true;
       }
+  }
+
+  if(nightMode && !wasNightMode){
+    blankDisplayForNightMode();
+  }
+  else if(!nightMode && wasNightMode){
+    updateDisplay();
   }
 }
 
