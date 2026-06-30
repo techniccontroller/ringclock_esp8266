@@ -4,6 +4,10 @@
  * @brief TFT display, weather and location related functions.
  */
 
+void clearWeatherLocationFromEEPROM();
+void scheduleNextWeatherAttempt(bool success);
+void updateWeather();
+
 void setupDisplay(){
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1);
@@ -14,6 +18,11 @@ void setupDisplay(){
 }
 
 bool updateLocationFromAPI(){
+  if(location.custom){
+    location.valid = true;
+    return true;
+  }
+
   if(WiFi.status() != WL_CONNECTED){
     location.valid = false;
     return false;
@@ -77,6 +86,255 @@ bool updateLocationFromAPI(){
   }
 
   return result;
+}
+
+bool parseFloatText(const String &text, float &value){
+  bool foundDigit = false;
+  bool foundDot = false;
+
+  if(text.length() == 0){
+    return false;
+  }
+
+  for(unsigned int i = 0; i < text.length(); i++){
+    char c = text[i];
+    if(isDigit(c)){
+      foundDigit = true;
+    }
+    else if(c == '.'){
+      if(foundDot){
+        return false;
+      }
+      foundDot = true;
+    }
+    else if((c == '-' || c == '+') && i == 0){
+      // sign is allowed only at the start
+    }
+    else {
+      return false;
+    }
+  }
+
+  if(!foundDigit){
+    return false;
+  }
+
+  value = text.toFloat();
+  return true;
+}
+
+bool parseCoordinateInput(String input, float &latitude, float &longitude){
+  input.trim();
+  int separator = input.indexOf(',');
+  if(separator < 0){
+    return false;
+  }
+
+  String latText = input.substring(0, separator);
+  String lonText = input.substring(separator + 1);
+  latText.trim();
+  lonText.trim();
+
+  if(!parseFloatText(latText, latitude) || !parseFloatText(lonText, longitude)){
+    return false;
+  }
+
+  return latitude >= -90.0 && latitude <= 90.0 && longitude >= -180.0 && longitude <= 180.0;
+}
+
+String urlEncode(const String &value){
+  String encoded = "";
+  const char hex[] = "0123456789ABCDEF";
+
+  for(unsigned int i = 0; i < value.length(); i++){
+    uint8_t c = value[i];
+    if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~'){
+      encoded += char(c);
+    }
+    else if(c == ' '){
+      encoded += "%20";
+    }
+    else {
+      encoded += "%";
+      encoded += hex[(c >> 4) & 0x0F];
+      encoded += hex[c & 0x0F];
+    }
+  }
+
+  return encoded;
+}
+
+String jsonEscape(const String &value){
+  String escaped = "";
+  for(unsigned int i = 0; i < value.length(); i++){
+    char c = value[i];
+    if(c == '"' || c == '\\'){
+      escaped += "\\";
+    }
+    escaped += c;
+  }
+  return escaped;
+}
+
+void writeEEPROMString(int address, const String &value, int maxLength){
+  int length = min((int)value.length(), maxLength - 1);
+  for(int i = 0; i < maxLength; i++){
+    EEPROM.write(address + i, 0);
+  }
+  for(int i = 0; i < length; i++){
+    EEPROM.write(address + i, value[i]);
+  }
+}
+
+String readEEPROMString(int address, int maxLength){
+  String value = "";
+  for(int i = 0; i < maxLength; i++){
+    char c = char(EEPROM.read(address + i));
+    if(c == 0 || c == 255){
+      break;
+    }
+    value += c;
+  }
+  return value;
+}
+
+bool coordinatesAreValid(float latitude, float longitude){
+  return latitude >= -90.0 && latitude <= 90.0 && longitude >= -180.0 && longitude <= 180.0;
+}
+
+bool geocodeWeatherLocation(const String &query, float &latitude, float &longitude, String &label){
+  if(WiFi.status() != WL_CONNECTED){
+    return false;
+  }
+
+  BearSSL::WiFiClientSecure client;
+  client.setInsecure();
+  client.setTimeout(GEOCODING_HTTP_TIMEOUT_MS);
+  HTTPClient http;
+  String url = "https://geocoding-api.open-meteo.com/v1/search?name=" + urlEncode(query) + "&count=1&language=en&format=json";
+
+  if(!http.begin(client, url)){
+    logger.logString("Weather location lookup failed: HTTP begin failed");
+    return false;
+  }
+
+  http.setTimeout(GEOCODING_HTTP_TIMEOUT_MS);
+  int httpCode = http.GET();
+  bool success = false;
+
+  if(httpCode == HTTP_CODE_OK){
+    String payload = http.getString();
+    float resolvedLatitude = 0.0;
+    float resolvedLongitude = 0.0;
+
+    if(extractJsonFloat(payload, "latitude", resolvedLatitude) && extractJsonFloat(payload, "longitude", resolvedLongitude)){
+      latitude = resolvedLatitude;
+      longitude = resolvedLongitude;
+      label = extractJsonString(payload, "name");
+      if(label.length() == 0){
+        label = query;
+      }
+      success = true;
+    }
+    else {
+      logger.logString("Weather location lookup failed: no result for " + query);
+    }
+  }
+  else {
+    logger.logString("Weather location lookup failed: HTTP " + String(httpCode));
+  }
+
+  http.end();
+  return success;
+}
+
+void saveWeatherLocationToEEPROM(float latitude, float longitude, const String &label){
+  EEPROM.write(ADR_WEATHER_CUSTOM, 1);
+  EEPROM.put(ADR_WEATHER_LAT, latitude);
+  EEPROM.put(ADR_WEATHER_LON, longitude);
+  writeEEPROMString(ADR_WEATHER_LABEL, label, WEATHER_LOCATION_MAX_LENGTH);
+  EEPROM.commit();
+}
+
+void loadWeatherLocationFromEEPROM(){
+  if(EEPROM.read(ADR_WEATHER_CUSTOM) != 1){
+    location.custom = false;
+    return;
+  }
+
+  float latitude = 0.0;
+  float longitude = 0.0;
+  EEPROM.get(ADR_WEATHER_LAT, latitude);
+  EEPROM.get(ADR_WEATHER_LON, longitude);
+
+  if(!coordinatesAreValid(latitude, longitude)){
+    clearWeatherLocationFromEEPROM();
+    return;
+  }
+
+  location.latitude = latitude;
+  location.longitude = longitude;
+  location.city = readEEPROMString(ADR_WEATHER_LABEL, WEATHER_LOCATION_MAX_LENGTH);
+  location.timezone = "";
+  location.offsetMinutes = 0;
+  location.valid = true;
+  location.custom = true;
+}
+
+void clearWeatherLocationFromEEPROM(){
+  EEPROM.write(ADR_WEATHER_CUSTOM, 0);
+  writeEEPROMString(ADR_WEATHER_LABEL, "", WEATHER_LOCATION_MAX_LENGTH);
+  EEPROM.commit();
+  location.latitude = WEATHER_FALLBACK_LATITUDE;
+  location.longitude = WEATHER_FALLBACK_LONGITUDE;
+  location.city = "";
+  location.timezone = "";
+  location.offsetMinutes = 0;
+  location.valid = false;
+  location.custom = false;
+}
+
+bool setWeatherLocationFromInput(String input){
+  input.trim();
+
+  if(input.length() == 0){
+    clearWeatherLocationFromEEPROM();
+    logger.logString("Weather location reset to automatic IP lookup");
+    weather.valid = false;
+    lastWeatherUpdate = millis() - WEATHER_REFRESH_PERIOD;
+    updateWeather();
+    return true;
+  }
+
+  float latitude = 0.0;
+  float longitude = 0.0;
+  String label = input;
+  bool success = false;
+
+  if(parseCoordinateInput(input, latitude, longitude)){
+    success = true;
+  }
+  else {
+    success = geocodeWeatherLocation(input, latitude, longitude, label);
+  }
+
+  if(!success || !coordinatesAreValid(latitude, longitude)){
+    return false;
+  }
+
+  location.latitude = latitude;
+  location.longitude = longitude;
+  location.city = label;
+  location.timezone = "";
+  location.offsetMinutes = 0;
+  location.valid = true;
+  location.custom = true;
+  saveWeatherLocationToEEPROM(latitude, longitude, label);
+  weather.valid = false;
+  lastWeatherUpdate = millis() - WEATHER_REFRESH_PERIOD;
+  updateWeather();
+  logger.logString("Weather location set to " + label + " (" + String(latitude, 4) + ", " + String(longitude, 4) + ")");
+  return true;
 }
 
 void showIPAddressOnDisplay(const IPAddress &ip){

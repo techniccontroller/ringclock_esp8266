@@ -236,7 +236,7 @@
 	}
 
 	.show{
-		height: 240px;
+		height: 340px;
 		transition: height 1s;
 	}
 
@@ -252,6 +252,19 @@
 		height: 30px; 
 		margin: 5px; 
 		background-color: rgba(147, 147, 158, 0.4);
+	}
+
+	input[type="text"]{
+		min-width: 150px;
+		height: 24px;
+		color: white;
+		background-color: rgba(59, 57, 57, 0.308);
+		border: 1px solid rgba(255, 255, 255, 0.356);
+	}
+
+	.setting-status{
+		font-size: small;
+		margin-left: 10px;
 	}
   
 	</style>
@@ -280,6 +293,14 @@
 			<div class="number-container">
 				<label for="nm_end" style="align-self: flex-start">Nachtmodus Endzeit: </label>
 				<input type="time" id="nm_end" name="nm_end" min="00:00" max="23:59">
+			</div>
+			<div class="number-container">
+				<label for="weather_location" style="align-self: flex-start">Wetterort: </label>
+				<input type="text" id="weather_location" name="weather_location" placeholder="Stadt, PLZ oder lat,lon">
+			</div>
+			<div class="number-container">
+				<div class="buttonClass save-button" onclick="saveWeatherLocation()" style="width: 140px">WETTER SPEICHERN</div>
+				<span id="weather_location_status" class="setting-status"></span>
 			</div>
 			<div class="checkbox-container">
 				<label for="reset_wifi" style="align-self: flex-start">WiFi Einstellungen zurücksetzen</label> 
@@ -472,6 +493,12 @@
 					document.getElementById("nm_end").value = myVar.nightModeEnd.replace("-", ":");
 					document.getElementById("brightnessIR").value = parseInt(myVar.brightnessIR);
 					document.getElementById("brightnessOR").value = parseInt(myVar.brightnessOR);
+					if(myVar.weatherLocationMode == "custom") {
+						document.getElementById("weather_location").value = myVar.weatherLocation;
+					}
+					else {
+						document.getElementById("weather_location").value = "";
+					}
 
 					console.log(myVar);
 				}
@@ -505,6 +532,27 @@
 					sendCommand("./cmd?resetwifi");
 				}
 				toggleSettings();
+			}
+
+			function saveWeatherLocation(){
+				var input = document.getElementById("weather_location");
+				var status = document.getElementById("weather_location_status");
+				var xmlhttp = new XMLHttpRequest();
+				status.textContent = "...";
+				xmlhttp.onreadystatechange = function() {
+					if (this.readyState == 4) {
+						if(this.status == 200) {
+							var response = JSON.parse(this.responseText);
+							status.textContent = response.weatherLocationMode == "custom" ? response.weatherLocation : "automatisch";
+							input.value = response.weatherLocationMode == "custom" ? response.weatherLocation : "";
+						}
+						else {
+							status.textContent = "nicht gefunden";
+						}
+					}
+				};
+				xmlhttp.open("GET", "./cmd?weatherlocation=" + encodeURIComponent(input.value), true);
+				xmlhttp.send();
 			}
 
 			function toggleSettings(){

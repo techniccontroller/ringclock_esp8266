@@ -27,6 +27,7 @@
 #define WEATHER_RETRY_PERIOD 60000
 #define WEATHER_HTTP_TIMEOUT_MS 5000
 #define LOCATION_HTTP_TIMEOUT_MS 5000
+#define GEOCODING_HTTP_TIMEOUT_MS 5000
 #define PERIOD_DISPLAY_UPDATE 60000
 
 #define WIFI_CONNECT_TIMEOUT_SECONDS 30
@@ -41,7 +42,7 @@
 // Seconds fade curve: 1.0 is linear, lower values brighten the dim part of the fade.
 #define SECONDS_FADE_GAMMA 0.65
 
-#define EEPROM_SIZE 30      // size of EEPROM to save persistent variables
+#define EEPROM_SIZE 96      // size of EEPROM to save persistent variables
 #define ADR_NM_START_H 0
 #define ADR_NM_END_H 4
 #define ADR_NM_START_M 8
@@ -57,3 +58,8 @@
 #define ADR_CH_RED 24
 #define ADR_CH_GREEN 25
 #define ADR_CH_BLUE 26
+#define ADR_WEATHER_CUSTOM 27
+#define ADR_WEATHER_LAT 28
+#define ADR_WEATHER_LON 32
+#define ADR_WEATHER_LABEL 36
+#define WEATHER_LOCATION_MAX_LENGTH 40

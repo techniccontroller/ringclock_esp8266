@@ -128,6 +128,7 @@ struct LocationData {
   String timezone = "";
   int offsetMinutes = 0;
   bool valid = false;
+  bool custom = false;
 };
 
 WeatherData weather;
@@ -135,6 +136,10 @@ LocationData location;
 
 void setupDisplay();
 bool updateLocationFromAPI();
+bool setWeatherLocationFromInput(String input);
+void loadWeatherLocationFromEEPROM();
+void clearWeatherLocationFromEEPROM();
+String jsonEscape(const String &value);
 void showIPAddressOnDisplay(const IPAddress &ip);
 void updateDisplay();
 void blankDisplayForNightMode();
@@ -229,6 +234,7 @@ void setup() {
   loadColorsFromEEPROM();
   loadNightmodeSettingsFromEEPROM();
   loadBrightnessSettingsFromEEPROM();
+  loadWeatherLocationFromEEPROM();
 
   if(!ESP.getResetReason().equals("Software/System restart")){
     runQuickLEDTest();
@@ -663,6 +669,22 @@ void handleCommand() {
     ledrings.setBrightnessOuterRing(brightnessOR);
     lastNightmodeCheck = 0;
   }
+  else if(server.argName(0) == "weatherlocation"){
+    String weatherLocationInput = server.arg(0);
+    logger.logString("Weather location change via Webserver to: " + weatherLocationInput);
+
+    if(setWeatherLocationFromInput(weatherLocationInput)){
+      String message = "{\"weatherLocation\":\"" + jsonEscape(location.city) + "\",";
+      message += "\"weatherLocationMode\":\"" + String(location.custom ? "custom" : "automatic") + "\",";
+      message += "\"weatherLat\":\"" + String(location.latitude, 4) + "\",";
+      message += "\"weatherLon\":\"" + String(location.longitude, 4) + "\"}";
+      server.send(200, "application/json", message);
+    }
+    else {
+      server.send(400, "application/json", "{\"error\":\"location lookup failed\"}");
+    }
+    return;
+  }
   else if (server.argName(0) == "resetwifi"){
     logger.logString("Reset Wifi via Webserver...");
     wifiManager.resetSettings();
@@ -728,6 +750,14 @@ void handleDataRequest() {
       message += "\"brightnessIR\":\"" + String(ledrings.getBrightnessInnerRing()) + "\"";
       message += ",";
       message += "\"brightnessOR\":\"" + String(ledrings.getBrightnessOuterRing()) + "\"";
+      message += ",";
+      message += "\"weatherLocation\":\"" + jsonEscape(location.city) + "\"";
+      message += ",";
+      message += "\"weatherLocationMode\":\"" + String(location.custom ? "custom" : "automatic") + "\"";
+      message += ",";
+      message += "\"weatherLat\":\"" + String(location.latitude, 4) + "\"";
+      message += ",";
+      message += "\"weatherLon\":\"" + String(location.longitude, 4) + "\"";
     }
     message += "}";
     logger.logString(message);
