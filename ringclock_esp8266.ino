@@ -147,6 +147,7 @@ void updateWeather();
 bool extractJsonFloat(const String &payload, const String &key, float &value);
 bool extractJsonInt(const String &payload, const String &key, int &value);
 String extractJsonString(const String &payload, const String &key);
+bool getBoundedHttpPayload(HTTPClient &http, String &payload, size_t maxLength);
 void drawCenteredText(const String &text, int16_t y, uint8_t size, uint16_t color);
 void drawCenteredTemperature(int16_t y, float temperature);
 void drawTemperature(int16_t x, int16_t y, float temperature);
@@ -667,11 +668,17 @@ void handleCommand() {
     lastNightmodeCheck = 0;
   }
   else if(server.argName(0) == "weatherlocation"){
+    if(server.arg(0).length() > WEATHER_LOCATION_INPUT_MAX_LENGTH){
+      server.send(413, "application/json", "{\"error\":\"location input too long\"}");
+      return;
+    }
     String weatherLocationInput = server.arg(0);
     logger.logString("Weather location change via Webserver to: " + weatherLocationInput);
 
     if(setWeatherLocationFromInput(weatherLocationInput)){
-      String message = "{\"weatherLocation\":\"" + jsonEscape(location.city) + "\",";
+      String message;
+      message.reserve(160 + location.city.length() * 2);
+      message = "{\"weatherLocation\":\"" + jsonEscape(location.city) + "\",";
       message += "\"weatherLocationMode\":\"" + String(location.custom ? "custom" : "automatic") + "\",";
       message += "\"weatherLat\":\"" + String(location.latitude, 4) + "\",";
       message += "\"weatherLon\":\"" + String(location.longitude, 4) + "\"}";
@@ -733,7 +740,9 @@ void handleDataRequest() {
   
   if (server.argName(0) == "key") // the parameter which was sent to this server is led color
   {
-    String message = "{";
+    String message;
+    message.reserve(256 + location.city.length() * 2);
+    message = "{";
     String keystr = server.arg(0);
     if(keystr == "mode"){
       message += "\"ledoff\":\"" + String(ledOff) + "\"";

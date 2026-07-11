@@ -8,6 +8,20 @@ void clearWeatherLocationFromEEPROM();
 void scheduleNextWeatherAttempt(bool success);
 void updateWeather();
 
+bool getBoundedHttpPayload(HTTPClient &http, String &payload, size_t maxLength){
+  int contentLength = http.getSize();
+  if(contentLength < 0 || (size_t)contentLength > maxLength){
+    return false;
+  }
+
+  if(!payload.reserve((size_t)contentLength + 1)){
+    return false;
+  }
+
+  payload = http.getString();
+  return payload.length() <= maxLength && payload.length() == (size_t)contentLength;
+}
+
 void setupDisplay(){
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1);
@@ -40,32 +54,37 @@ bool updateLocationFromAPI(){
     int httpCode = http.GET();
 
     if(httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY){
-      String payload = http.getString();
-      String status = extractJsonString(payload, "status");
-
-      if(status == "success"){
-        float latitude = 0.0;
-        float longitude = 0.0;
-        int offsetSeconds = 0;
-
-        if(extractJsonFloat(payload, "lat", latitude) && extractJsonFloat(payload, "lon", longitude)){
-          location.latitude = latitude;
-          location.longitude = longitude;
-          location.city = extractJsonString(payload, "city");
-          location.timezone = extractJsonString(payload, "timezone");
-
-          if(extractJsonInt(payload, "offset", offsetSeconds)){
-            location.offsetMinutes = offsetSeconds / 60;
-          }
-
-          location.valid = true;
-          result = true;
-          logger.logString("[HTTP] Received location: " + location.city + " (" + String(location.latitude, 4) + ", " + String(location.longitude, 4) + ")");
-          logger.logString("[HTTP] Received timezone: " + location.timezone + ", offset min: " + String(location.offsetMinutes));
-        }
+      String payload;
+      if(!getBoundedHttpPayload(http, payload, HTTP_RESPONSE_MAX_LENGTH)){
+        logger.logString("[HTTP] Location response missing length or too large");
       }
       else {
-        logger.logString("[HTTP] IP-API returned status: " + status + ", message: " + extractJsonString(payload, "message"));
+        String status = extractJsonString(payload, "status");
+
+        if(status == "success"){
+          float latitude = 0.0;
+          float longitude = 0.0;
+          int offsetSeconds = 0;
+
+          if(extractJsonFloat(payload, "lat", latitude) && extractJsonFloat(payload, "lon", longitude)){
+            location.latitude = latitude;
+            location.longitude = longitude;
+            location.city = extractJsonString(payload, "city");
+            location.timezone = extractJsonString(payload, "timezone");
+
+            if(extractJsonInt(payload, "offset", offsetSeconds)){
+              location.offsetMinutes = offsetSeconds / 60;
+            }
+
+            location.valid = true;
+            result = true;
+            logger.logString("[HTTP] Received location: " + location.city + " (" + String(location.latitude, 4) + ", " + String(location.longitude, 4) + ")");
+            logger.logString("[HTTP] Received timezone: " + location.timezone + ", offset min: " + String(location.offsetMinutes));
+          }
+        }
+        else {
+          logger.logString("[HTTP] IP-API returned status: " + status + ", message: " + extractJsonString(payload, "message"));
+        }
       }
     }
     else {
@@ -144,6 +163,9 @@ bool parseCoordinateInput(String input, float &latitude, float &longitude){
 
 String urlEncode(const String &value){
   String encoded = "";
+  if(!encoded.reserve(value.length() * 3 + 1)){
+    return "";
+  }
   const char hex[] = "0123456789ABCDEF";
 
   for(unsigned int i = 0; i < value.length(); i++){
@@ -166,6 +188,9 @@ String urlEncode(const String &value){
 
 String jsonEscape(const String &value){
   String escaped = "";
+  if(!escaped.reserve(value.length() * 2 + 1)){
+    return "";
+  }
   for(unsigned int i = 0; i < value.length(); i++){
     char c = value[i];
     if(c == '"' || c == '\\'){
@@ -188,6 +213,7 @@ void writeEEPROMString(int address, const String &value, int maxLength){
 
 String readEEPROMString(int address, int maxLength){
   String value = "";
+  value.reserve(maxLength);
   for(int i = 0; i < maxLength; i++){
     char c = char(EEPROM.read(address + i));
     if(c == 0 || c == 255){
@@ -211,7 +237,14 @@ bool geocodeWeatherLocation(const String &query, float &latitude, float &longitu
   client.setInsecure();
   client.setTimeout(GEOCODING_HTTP_TIMEOUT_MS);
   HTTPClient http;
-  String url = "https://geocoding-api.open-meteo.com/v1/search?name=" + urlEncode(query) + "&count=1&language=en&format=json";
+  String encodedQuery = urlEncode(query);
+  if(query.length() > 0 && encodedQuery.length() == 0){
+    logger.logString("Weather location lookup failed: insufficient heap for URL");
+    return false;
+  }
+  String url;
+  url.reserve(96 + encodedQuery.length());
+  url = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodedQuery + "&count=1&language=en&format=json";
 
   if(!http.begin(client, url)){
     logger.logString("Weather location lookup failed: HTTP begin failed");
@@ -223,7 +256,12 @@ bool geocodeWeatherLocation(const String &query, float &latitude, float &longitu
   bool success = false;
 
   if(httpCode == HTTP_CODE_OK){
-    String payload = http.getString();
+    String payload;
+    if(!getBoundedHttpPayload(http, payload, HTTP_RESPONSE_MAX_LENGTH)){
+      logger.logString("Weather location lookup failed: response missing length or too large");
+      http.end();
+      return false;
+    }
     float resolvedLatitude = 0.0;
     float resolvedLongitude = 0.0;
 
@@ -296,6 +334,10 @@ void clearWeatherLocationFromEEPROM(){
 
 bool setWeatherLocationFromInput(String input){
   input.trim();
+
+  if(input.length() > WEATHER_LOCATION_INPUT_MAX_LENGTH){
+    return false;
+  }
 
   if(input.length() == 0){
     clearWeatherLocationFromEEPROM();
@@ -421,9 +463,11 @@ void updateWeather(){
   client.setInsecure();
   client.setTimeout(WEATHER_HTTP_TIMEOUT_MS);
   HTTPClient http;
-  String url = "https://api.open-meteo.com/v1/forecast?latitude=" + String(location.latitude, 4) +
-               "&longitude=" + String(location.longitude, 4) +
-               "&current=temperature_2m,weather_code&timezone=auto";
+  String url;
+  url.reserve(160);
+  url = "https://api.open-meteo.com/v1/forecast?latitude=" + String(location.latitude, 4) +
+        "&longitude=" + String(location.longitude, 4) +
+        "&current=temperature_2m,weather_code&timezone=auto";
 
   if(!http.begin(client, url)){
     markWeatherAttemptFailed("Weather update failed: HTTP begin failed");
@@ -434,30 +478,35 @@ void updateWeather(){
   int httpCode = http.GET();
   bool success = false;
   if(httpCode == HTTP_CODE_OK){
-    String payload = http.getString();
-    float temperature = 0.0;
-    int weatherCode = -1;
-
-    bool temperatureFound = extractJsonFloat(payload, "temperature_2m", temperature);
-    bool weatherCodeFound = extractJsonInt(payload, "weather_code", weatherCode);
-
-    if(!temperatureFound){
-      temperatureFound = extractJsonFloat(payload, "temperature", temperature);
-    }
-    if(!weatherCodeFound){
-      weatherCodeFound = extractJsonInt(payload, "weathercode", weatherCode);
-    }
-
-    if(temperatureFound && weatherCodeFound){
-      weather.temperature = temperature;
-      weather.weatherCode = weatherCode;
-      weather.valid = true;
-      weather.updatedAt = ntp.getFormattedTime().substring(0, 5);
-      success = true;
-      logger.logString("Weather update successful: " + String(weather.temperature, 1) + "C, code " + String(weather.weatherCode));
+    String payload;
+    if(!getBoundedHttpPayload(http, payload, HTTP_RESPONSE_MAX_LENGTH)){
+      logger.logString("Weather update failed: response missing length or too large");
     }
     else {
-      logger.logString("Weather update failed: JSON values missing");
+      float temperature = 0.0;
+      int weatherCode = -1;
+
+      bool temperatureFound = extractJsonFloat(payload, "temperature_2m", temperature);
+      bool weatherCodeFound = extractJsonInt(payload, "weather_code", weatherCode);
+
+      if(!temperatureFound){
+        temperatureFound = extractJsonFloat(payload, "temperature", temperature);
+      }
+      if(!weatherCodeFound){
+        weatherCodeFound = extractJsonInt(payload, "weathercode", weatherCode);
+      }
+
+      if(temperatureFound && weatherCodeFound){
+        weather.temperature = temperature;
+        weather.weatherCode = weatherCode;
+        weather.valid = true;
+        weather.updatedAt = ntp.getFormattedTime().substring(0, 5);
+        success = true;
+        logger.logString("Weather update successful: " + String(weather.temperature, 1) + "C, code " + String(weather.weatherCode));
+      }
+      else {
+        logger.logString("Weather update failed: JSON values missing");
+      }
     }
   }
   else {

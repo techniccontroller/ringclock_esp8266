@@ -221,11 +221,9 @@ String NTPClientPlus::getFormattedDate() {
     unsigned int dateMonth = this->_dateMonth;
     unsigned int dateYear = this->_dateYear;
 
-    String dayStr = dateDay < 10 ? "0" + String(dateDay) : String(dateDay);
-    String monthStr = dateMonth < 10 ? "0" + String(dateMonth) : String(dateMonth);
-    String yearStr = dateYear < 10 ? "0" + String(dateYear) : String(dateYear);
-
-    return dayStr + "." + monthStr + "." + yearStr;
+    char buffer[11]; // "dd.mm.yyyy" + '\0'
+    snprintf(buffer, sizeof(buffer), "%02u.%02u.%04u", dateDay, dateMonth, dateYear);
+    return String(buffer);
 }
 
 
