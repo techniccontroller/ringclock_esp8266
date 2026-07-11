@@ -282,7 +282,6 @@ void setup() {
   ntp.setupNTPClient();
   logger.logString("NTP running");
   logger.logString("Time: " +  ntp.getFormattedTime());
-  logger.logString("TimeOffset (seconds): " + String(ntp.getTimeOffset()));
   checkNightmode();
 
   if(nightMode){
@@ -339,7 +338,6 @@ void loop() {
       logger.logString("Time: " +  ntp.getFormattedTime());
       logger.logString("Date: " +  ntp.getFormattedDate());
       logger.logString("Day of Week (Mon=1, Sun=7): " +  String(ntp.getDayOfWeek()));
-      logger.logString("TimeOffset (seconds): " + String(ntp.getTimeOffset()));
       logger.logString("Summertime: " + String(ntp.updateSWChange()));
       lastNTPUpdate = millis();
       watchdogCounter = 30;
@@ -360,7 +358,6 @@ void loop() {
       logger.logString("Time: " +  ntp.getFormattedTime());
       logger.logString("Date: " +  ntp.getFormattedDate());
       logger.logString("Day of Week (Mon=1, Sun=7): " +  ntp.getDayOfWeek());
-      logger.logString("TimeOffset (seconds): " + String(ntp.getTimeOffset()));
       logger.logString("Summertime: " + String(ntp.updateSWChange()));
       lastNTPUpdate += 10000;
       watchdogCounter--;

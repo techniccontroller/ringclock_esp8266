@@ -21,7 +21,7 @@ class NTPClientPlus{
         void setupNTPClient();
         int updateNTP();
         void end();
-        void setTimeOffset(int timeOffset);
+        void setUTCOffset(int utcOffset);
         void setPoolServerName(const char* poolServerName);
         unsigned long getSecsSince1900() const;
         unsigned long getEpochTime() const;
@@ -33,10 +33,11 @@ class NTPClientPlus{
         String getFormattedDate();
         void calcDate();
         unsigned int getDayOfWeek();
+        unsigned int getDayOfMonth();
+        unsigned int getMonthNumber();
         unsigned int getYear();
         bool isLeapYear(unsigned int year);
         int getMonth(int dayOfYear);
-        long getTimeOffset();
         bool updateSWChange();
 
 
@@ -47,9 +48,9 @@ class NTPClientPlus{
         const char*   _poolServerName = "pool.ntp.org"; // Default time server
         IPAddress     _poolServerIP;
         unsigned int  _port           = NTP_DEFAULT_LOCAL_PORT;
-        long          _timeOffset     = 0;
         int           _utcx           = 0;
-        bool          _swChange        = 1;
+        bool          _swChange       = 1;
+        bool          _summertime     = false;
 
         unsigned long _updateInterval = 60000;  // In ms
 

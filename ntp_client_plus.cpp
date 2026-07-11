@@ -12,7 +12,6 @@ NTPClientPlus::NTPClientPlus(UDP &udp, const char *poolServerName, int utcx, boo
 {
     this->_udp = &udp;
     this->_utcx = utcx;
-    this->_timeOffset = this->secondperhour * this->_utcx;
     this->_poolServerName = poolServerName;
     this->_swChange = _swChange;
 }
@@ -104,18 +103,13 @@ void NTPClientPlus::end()
 }
 
 /**
- * @brief Setter TimeOffset
+ * @brief Setter UTC offset
  * 
- * @param timeOffset offset from UTC in seconds
+ * @param utcOffset offset from UTC in minutes
  */
-void NTPClientPlus::setTimeOffset(int timeOffset)
+void NTPClientPlus::setUTCOffset(int utcOffset)
 {
-    this->_timeOffset = timeOffset;
-}
-
-long NTPClientPlus::getTimeOffset()
-{
-    return this->_timeOffset;
+    this->_utcx = utcOffset;
 }
 
 /**
@@ -134,10 +128,12 @@ void NTPClientPlus::setPoolServerName(const char *poolServerName)
  * @return unsigned long seconds since 1. Jan. 1900
  */
 unsigned long NTPClientPlus::getSecsSince1900() const
-{
-    return this->_timeOffset +                      // User offset
-           this->_secsSince1900 +                   // seconds returned by the NTP server
-           ((millis() - this->_lastUpdate) / 1000); // Time since last update
+{    
+    int64_t secsSince1900WithDST =  static_cast<int64_t>(this->_secsSince1900) +                    // seconds returned by the NTP server
+                                    static_cast<int64_t>((millis() - this->_lastUpdate) / 1000) +   // Time since last update
+                                    this->_summertime * this->secondperhour +                       // Summer time offset
+                                    (static_cast<int64_t>(this->_utcx) * this->secondperminute);    // UTC offset
+    return static_cast<unsigned long>(secsSince1900WithDST);
 }
 
 /**
@@ -204,15 +200,14 @@ int NTPClientPlus::getSeconds() const
 String NTPClientPlus::getFormattedTime() const {
   unsigned long rawTime = this->getEpochTime();
   unsigned long hours = (rawTime % 86400L) / 3600;
-  String hoursStr = hours < 10 ? "0" + String(hours) : String(hours);
-
   unsigned long minutes = (rawTime % 3600) / 60;
-  String minuteStr = minutes < 10 ? "0" + String(minutes) : String(minutes);
-
   unsigned long seconds = rawTime % 60;
-  String secondStr = seconds < 10 ? "0" + String(seconds) : String(seconds);
 
-  return hoursStr + ":" + minuteStr + ":" + secondStr;
+  // Fester Puffer statt mehrfacher String-Verkettung, um Heap-Fragmentierung zu vermeiden
+  // Format identisch zu vorher: hh:mm:ss (jeweils 2-stellig, mit fuehrender Null)
+  char buffer[9]; // "hh:mm:ss" + '\0'
+  snprintf(buffer, sizeof(buffer), "%02lu:%02lu:%02lu", hours, minutes, seconds);
+  return String(buffer);
 }
 
 /**
@@ -320,6 +315,26 @@ unsigned int NTPClientPlus::getDayOfWeek()
 }
 
 /**
+ * @brief Getter for day of the month
+ * 
+ * @return unsigned int 
+ */
+unsigned int NTPClientPlus::getDayOfMonth()
+{
+    return this->_dateDay;
+}
+
+/**
+ * @brief Getter for the month number
+ * 
+ * @return unsigned int 
+ */
+unsigned int NTPClientPlus::getMonthNumber()
+{
+    return this->_dateMonth;
+}
+
+/**
  * @brief Function to calc current year
  * 
  * @return unsigned int 
@@ -335,7 +350,7 @@ unsigned int NTPClientPlus::getYear()
     unsigned int days = 0;
     unsigned int days1900 = 0;
 
-    unsigned int for_i = 0;
+    unsigned long for_i = 0;
     bool leapYear = LOW;
 
     days1900 = sec1900 / this->secondperday;
@@ -556,18 +571,11 @@ void NTPClientPlus::sendNTPPacket()
  */
 void NTPClientPlus::setSummertime(bool summertime)
 {
-    if (summertime)
-    {
-        this->_timeOffset = this->secondperhour * (this->_utcx + 1);
-    }
-    else
-    {
-        this->_timeOffset = this->secondperhour * (this->_utcx);
-    }
+    this->_summertime = summertime;
 }
 
 /**
- * @brief (private) Update Summer/Winter time change
+ * @brief Update Summer/Winter time change
  * 
  * @returns bool summertime active
  */
@@ -576,6 +584,21 @@ bool NTPClientPlus::updateSWChange()
     unsigned int dayOfWeek = this->_dayOfWeek; 
     unsigned int dateDay = this->_dateDay; 
     unsigned int dateMonth = this->_dateMonth;
+
+    // Calculate local STANDARD time (without DST) for exact switch-hour handling.
+    // EU rule: DST starts on last Sunday in March at 02:00 (standard time),
+    // and ends on last Sunday in October at 03:00 local summer time
+    // (== 02:00 standard time).
+    int64_t currentUtcSeconds = static_cast<int64_t>(this->_secsSince1900) +
+                                static_cast<int64_t>((millis() - this->_lastUpdate) / 1000);
+    int64_t secsSince1900NoDST = currentUtcSeconds +
+                                 (static_cast<int64_t>(this->_utcx) * this->secondperminute);
+    int64_t secondsIntoDay = secsSince1900NoDST % this->secondperday;
+    if (secondsIntoDay < 0)
+    {
+        secondsIntoDay += this->secondperday;
+    }
+    unsigned int hourNoDST = static_cast<unsigned int>(secondsIntoDay / this->secondperhour);
 
     bool summertimeActive = false;
     
@@ -599,10 +622,19 @@ bool NTPClientPlus::updateSWChange()
                 //Calculation: 31 - 30 = 1; 1 + 2 = 3;
                 //Result: Last day in March is a Wednesday. Changeover to summer time already done => set summer time
 
-                // If today is Sunday (dayOfWeek == 7) then this is already the last sunday in march -> set summer time
+                // If today is Sunday (dayOfWeek == 7) then this is the last Sunday in March.
+                // Switch to summer time at 02:00 standard time (clock jumps to 03:00).
                 if(dayOfWeek == 7){
-                    this->setSummertime(1);
-                    summertimeActive = true;
+                    if (hourNoDST >= 2)
+                    {
+                        this->setSummertime(1);
+                        summertimeActive = true;
+                    }
+                    else
+                    {
+                        this->setSummertime(0);
+                        summertimeActive = false;
+                    }
                 }
 
                 //There follows within the last week in March one more Sunday => set winter time
@@ -644,10 +676,20 @@ bool NTPClientPlus::updateSWChange()
                 //Calculation: 31 - 26 = 5; 5 + 2 = 7;
                 //Result: Last day in October is a Sunday. There follows another Sunday in October => set summer time
                 
-                // If today is Sunday (dayOfWeek == 7) then this is already the last sunday in october -> winter time
+                // If today is Sunday (dayOfWeek == 7) then this is the last Sunday in October.
+                // Switch back to winter time at 02:00 standard time
+                // (which corresponds to 03:00 local summer time).
                 if(dayOfWeek == 7){
-                    this->setSummertime(0);
-                    summertimeActive = false;
+                    if (hourNoDST >= 2)
+                    {
+                        this->setSummertime(0);
+                        summertimeActive = false;
+                    }
+                    else
+                    {
+                        this->setSummertime(1);
+                        summertimeActive = true;
+                    }
                 }
 
                 // There follows within the last week in October one more Sunday => summer time
