@@ -10,16 +10,29 @@ void updateWeather();
 
 bool getBoundedHttpPayload(HTTPClient &http, String &payload, size_t maxLength){
   int contentLength = http.getSize();
-  if(contentLength < 0 || (size_t)contentLength > maxLength){
+  if(contentLength >= 0 && (size_t)contentLength > maxLength){
+    logger.logString("HTTP response too large: " + String(contentLength));
     return false;
   }
 
-  if(!payload.reserve((size_t)contentLength + 1)){
+  if(contentLength >= 0 && !payload.reserve((size_t)contentLength + 1)){
+    logger.logString("Failed to reserve memory for HTTP payload");
     return false;
   }
 
   payload = http.getString();
-  return payload.length() <= maxLength && payload.length() == (size_t)contentLength;
+  if(payload.length() > maxLength){
+    logger.logString("HTTP response payload too large: " + String(payload.length()));
+    return false;
+  }
+
+  if(contentLength >= 0 && payload.length() != (size_t)contentLength){
+    logger.logString("HTTP response length mismatch: expected " + String(contentLength) +
+                     ", received " + String(payload.length()));
+    return false;
+  }
+
+  return true;
 }
 
 void setupDisplay(){
@@ -56,7 +69,7 @@ bool updateLocationFromAPI(){
     if(httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY){
       String payload;
       if(!getBoundedHttpPayload(http, payload, HTTP_RESPONSE_MAX_LENGTH)){
-        logger.logString("[HTTP] Location response missing length or too large");
+        logger.logString("[HTTP] Location response invalid or too large");
       }
       else {
         String status = extractJsonString(payload, "status");
@@ -258,7 +271,7 @@ bool geocodeWeatherLocation(const String &query, float &latitude, float &longitu
   if(httpCode == HTTP_CODE_OK){
     String payload;
     if(!getBoundedHttpPayload(http, payload, HTTP_RESPONSE_MAX_LENGTH)){
-      logger.logString("Weather location lookup failed: response missing length or too large");
+      logger.logString("Weather location lookup failed: response invalid or too large");
       http.end();
       return false;
     }
@@ -480,7 +493,7 @@ void updateWeather(){
   if(httpCode == HTTP_CODE_OK){
     String payload;
     if(!getBoundedHttpPayload(http, payload, HTTP_RESPONSE_MAX_LENGTH)){
-      logger.logString("Weather update failed: response missing length or too large");
+      logger.logString("Weather update failed: response invalid or too large");
     }
     else {
       float temperature = 0.0;

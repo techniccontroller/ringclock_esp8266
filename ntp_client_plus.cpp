@@ -5,7 +5,7 @@
  * 
  * @param udp   UDP client
  * @param poolServerName    time server name
- * @param utcx  UTC offset (in 1h)
+ * @param utcx  UTC offset in minutes
  * @param _swChange should summer/winter time be considered
  */
 NTPClientPlus::NTPClientPlus(UDP &udp, const char *poolServerName, int utcx, bool _swChange)

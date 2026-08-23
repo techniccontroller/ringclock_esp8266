@@ -92,7 +92,7 @@ long lastWeatherUpdate = millis() - WEATHER_REFRESH_PERIOD;
 // Create necessary global objects
 UDPLogger logger;
 WiFiUDP NTPUDP;
-NTPClientPlus ntp = NTPClientPlus(NTPUDP, "pool.ntp.org", 1, true);
+NTPClientPlus ntp = NTPClientPlus(NTPUDP, "pool.ntp.org", 60, true);
 LEDRings ledrings = LEDRings(&outer_ring, &inner_ring, &logger);
 
 // colors
@@ -225,7 +225,7 @@ void setup() {
 
   // create UDP Logger to send logging messages via UDP multicast
   logger = UDPLogger(WiFi.localIP(), logMulticastIP, logMulticastPort);
-  logger.setName("Ringclock");
+  logger.setName("Ringclock_wDisplay");
   logger.logString("Start program\n");
   logger.logString("Sketchname: "+ String(__FILE__));
   logger.logString("Build: " + String(__TIMESTAMP__));
